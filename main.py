@@ -37,7 +37,7 @@ class Car(pygame.sprite.Sprite):
         self.data()
 
     def drive(self):
-        self.rect.center += self.vel_vector * 10
+        self.rect.center += self.vel_vector * 6
 
     def collision(self):
         length = 40
@@ -88,7 +88,7 @@ class Car(pygame.sprite.Sprite):
     def data(self):
         input = [0, 0, 0, 0, 0]
         for i, radar in enumerate(self.radars):
-            input[i] = int(radar[1])
+            input[i] = radar[1] / 200  # Normalisation des données d'entrée
         return input
 
 
@@ -127,6 +127,7 @@ def eval_genomes(genomes, config):
         for i, car in enumerate(cars):
             ge[i].fitness += 1
             if not car.sprite.alive:
+                ge[i].fitness -= 100  # Penalize collision
                 remove(i)
 
         for i, car in enumerate(cars):
@@ -136,48 +137,3 @@ def eval_genomes(genomes, config):
                 car.sprite.direction = 1
             if output[1] > 0.7:
                 car.sprite.direction = -1
-            if output[0] <= 0.7 and output[1] <= 0.7:
-                car.sprite.direction = 0
-
-        # Update
-        for car in cars:
-            car.draw(SCREEN)
-            car.update()
-        pygame.display.update()
-
-
-# Setup Deep Learning Model
-def build_model():
-    model = keras.Sequential([
-        keras.layers.Input(shape=(5,)),
-        keras.layers.Dense(10, activation='relu'),
-        keras.layers.Dense(10, activation='relu'),
-        keras.layers.Dense(2, activation='sigmoid')
-    ])
-    model.compile(optimizer='adam', loss='mse')
-    return model
-
-
-def run(config_path):
-    global pop
-    config = neat.config.Config(
-        neat.DefaultGenome,
-        neat.DefaultReproduction,
-        neat.DefaultSpeciesSet,
-        neat.DefaultStagnation,
-        config_path
-    )
-
-    pop = neat.Population(config)
-
-    pop.add_reporter(neat.StdOutReporter(True))
-    stats = neat.StatisticsReporter()
-    pop.add_reporter(stats)
-
-    pop.run(eval_genomes, 50)
-
-
-if __name__ == '__main__':
-    local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, 'config.txt')
-    run(config_path)
